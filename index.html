@@ -25,13 +25,14 @@ button,input{font-family:'Space Grotesk',sans-serif}
 .o1{width:60vw;height:60vw;top:-20%;left:-15%;background:var(--adim);opacity:.6;transition:background 1s}
 .o2{width:45vw;height:45vw;bottom:-15%;right:-10%;background:rgba(100,50,200,.06)}
 
-/* ── BACKGROUND ARTIST SLIDESHOW ── */
-#bgSlide{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
-.bg-img{position:absolute;inset:-20px;background-size:cover;background-position:center;opacity:0;transition:opacity 2.5s ease-in-out;filter:blur(18px) saturate(1.3) brightness(.7);transform:scale(1.15)}
-.bg-img.active{opacity:.45}
-.bg-img.prev{opacity:0}
-/* Dark gradient over bg */
-#bgOverlay{position:fixed;inset:0;z-index:2;pointer-events:none;background:linear-gradient(to bottom,rgba(6,6,9,.6) 0%,rgba(6,6,9,.5) 50%,rgba(6,6,9,.7) 100%)}
+
+
+/* ── BG ARTIST PHOTOS ── */
+#bgWrap{position:fixed;inset:0;z-index:0;pointer-events:none}
+#bgA,#bgB{position:absolute;inset:0;background-size:cover;background-position:center top;transition:opacity 3s ease;opacity:0;filter:blur(22px) brightness(.5) saturate(1.3);transform:scale(1.08)}
+#bgA.on,#bgB.on{opacity:1}
+#bgDim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,6,9,.55) 0%,rgba(6,6,9,.3) 40%,rgba(6,6,9,.7) 100%)}
+
 /* LOADER */
 #loader{position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:var(--bg);transition:opacity .5s}
 #loader.hide{opacity:0;pointer-events:none}
@@ -74,7 +75,7 @@ button,input{font-family:'Space Grotesk',sans-serif}
 .ve{background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:10px 16px;font-size:14px;color:var(--a);font-weight:700}
 /* MAIN */
 #main{display:none;width:100%;height:100%;position:relative}
-.screen{position:absolute;inset:0;padding-bottom:calc(var(--nav)+var(--sb));overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;z-index:3;transition:opacity .2s,transform .2s}
+.screen{position:absolute;inset:0;padding-bottom:calc(var(--nav)+var(--sb));overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;z-index:10;transition:opacity .2s,transform .2s}
 .screen.off{opacity:0;pointer-events:none;transform:translateY(8px)}
 /* PLAYER */
 #sP{display:flex;flex-direction:column}
@@ -269,7 +270,7 @@ button,input{font-family:'Space Grotesk',sans-serif}
 .sact.red{color:var(--hot);border-color:rgba(244,63,94,.25)}
 .badge{background:var(--adim);border:1px solid rgba(167,139,250,.22);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--a);white-space:nowrap}
 /* NAV */
-#nav{position:fixed;bottom:0;left:0;right:0;z-index:110;background:rgba(6,6,9,.92);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-top:1px solid var(--border)}
+#nav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(6,6,9,.92);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-top:1px solid var(--border)}
 .navi{height:var(--nav);padding-bottom:var(--sb);display:flex;align-items:center}
 .nbtn{flex:1;height:100%;background:none;border:none;color:var(--wd);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:color .2s;font-size:10px;font-weight:700;letter-spacing:.4px}
 .nbtn svg{width:21px;height:21px}
@@ -329,12 +330,8 @@ button,input{font-family:'Space Grotesk',sans-serif}
 <body>
 <div id="app">
 
-<!-- BACKGROUND SLIDESHOW -->
-<div id="bgSlide">
-  <div class="bg-img" id="bg0"></div>
-  <div class="bg-img" id="bg1"></div>
-</div>
-<div id="bgOverlay"></div>
+
+<div id="bgWrap"><div id="bgA"></div><div id="bgB"></div><div id="bgDim"></div></div>
 <div class="orb o1"></div><div class="orb o2"></div>
 <div id="loader"><div class="ll">WAVE</div><div class="ls"></div></div>
 <input type="file" id="fileIn" multiple accept="audio/*,.mp3,.flac,.wav,.ogg,.m4a,.aac,.opus,.wma">
@@ -634,7 +631,7 @@ async function boot(user){
   try{await openDB();const all=await dbAll();songs=all.filter(s=>!s.uid||s.uid===user.uid);songs.forEach(s=>{s.artUrl=s.artData?URL.createObjectURL(new Blob([s.artData],{type:s.artType||'image/jpeg'})):null;});buildQ();}catch{songs=[];}
   loadProfilePhoto();applySettings();
   g('loader').classList.add('hide');
-  setTimeout(()=>{g('loader').style.display='none';g('auth').classList.remove('show');g('main').style.display='block';updProfile(user);updEmpty();renderRecent();if(songs.length){curSong=songs[songs.length-1];updUI();}setupMS();setTimeout(fetchMissingArt,2000);initBgSlideshow();},500);
+  setTimeout(()=>{g('loader').style.display='none';g('auth').classList.remove('show');g('main').style.display='block';updProfile(user);updEmpty();renderRecent();if(songs.length){curSong=songs[songs.length-1];updUI();}setupMS();setTimeout(fetchMissingArt,2000);setTimeout(initBgSlideshow,1000);},500);
 }
 
 /* AUTH UI */
@@ -710,7 +707,7 @@ async function playSong(idx,reset=false){
     setupACtx();if(actx?.state==='suspended')await actx.resume();
     await audio.play();playing=true;
   }catch(e){console.error('Play:',e);playing=false;}
-  updUI();updLike();updLibActive();startViz();updMS();updBgForSong(curSong);
+  updUI();updLike();updLibActive();startViz();updMS();updBgForCurrent();
 }
 function togglePlay(){if(!curSong)return;if(playing){audio.pause();playing=false;stopViz();}else{setupACtx();if(actx?.state==='suspended')actx.resume();audio.play().then(()=>{playing=true;startViz();}).catch(e=>console.error(e));}updPBtn();updMS();}
 function skipNext(){if(!songs.length)return;if(repeat===2){audio.currentTime=0;audio.play();return;}qPos++;if(qPos>=queue.length){qPos=0;if(!repeat){stop();return;}}playSong(queue[qPos]);}
@@ -1050,64 +1047,91 @@ let toastT;
 function toast(msg){const t=g('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2500);}
 
 
-/* ══════════════════════════════════════
-   BACKGROUND ARTIST SLIDESHOW
-══════════════════════════════════════ */
-let bgPhotos=[];let bgIdx=0;let bgActive=0;let bgTimer=null;
+
+
+/* ── BG ARTIST PHOTOS SLIDESHOW ── */
+let _bgPhotos=[];let _bgCur=0;let _bgSlot=0;let _bgTimer=null;
+
+async function fetchWikiPhoto(name){
+  try{
+    const r=await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(name),{headers:{Accept:'application/json'}});
+    if(!r.ok)return null;
+    const d=await r.json();
+    if(d.thumbnail&&d.thumbnail.source&&d.type!=='disambiguation'){
+      return d.thumbnail.source.replace(/\/\d+px-/,'/800px-');
+    }
+  }catch{}
+  return null;
+}
+
+async function fetchWikiPhotoFR(name){
+  try{
+    const r=await fetch('https://fr.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(name),{headers:{Accept:'application/json'}});
+    if(!r.ok)return null;
+    const d=await r.json();
+    if(d.thumbnail&&d.thumbnail.source)return d.thumbnail.source.replace(/\/\d+px-/,'/800px-');
+  }catch{}
+  return null;
+}
+
+function _bgShow(url){
+  if(!url)return;
+  const next=_bgSlot===0?'bgB':'bgA';
+  const prev=_bgSlot===0?'bgA':'bgB';
+  const el=document.getElementById(next);
+  if(!el)return;
+  el.style.backgroundImage='url('+JSON.stringify(url)+')';
+  document.getElementById(prev).classList.remove('on');
+  setTimeout(()=>{el.classList.add('on');},50);
+  _bgSlot=_bgSlot===0?1:0;
+}
+
+function _bgNext(){
+  if(!_bgPhotos.length)return;
+  _bgCur=(_bgCur+1)%_bgPhotos.length;
+  _bgShow(_bgPhotos[_bgCur]);
+}
 
 async function initBgSlideshow(){
-  // 1. Démarre immédiatement avec les pochettes locales
-  songs.forEach(s=>{if(s.artUrl&&!bgPhotos.includes(s.artUrl))bgPhotos.push(s.artUrl);});
-  if(bgPhotos.length){startBgSlideshow();}
+  if(!songs.length)return;
   
-  // 2. Cherche en arrière-plan les vraies photos Wikipedia
+  // Collecte les artistes uniques
   const seen=new Set();
-  songs.forEach(s=>{if(s.artist&&!seen.has(s.artist)){seen.add(s.artist);}});
-  for(const name of [...seen].slice(0,10)){
-    try{
-      const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`,{headers:{Accept:'application/json'}});
-      if(r.ok){
-        const d=await r.json();
-        if(d.thumbnail?.source&&d.type!=='disambiguation'){
-          const url=d.thumbnail.source.replace(/\/\d+px-/,'/600px-');
-          if(!bgPhotos.includes(url))bgPhotos.push(url);
-        }
+  songs.forEach(s=>{if(s.artist&&s.artist.trim())seen.add(s.artist.trim());});
+  const artists=[...seen].slice(0,12);
+  
+  if(!artists.length)return;
+  
+  // Cherche les vraies photos via Wikipedia
+  toast('🖼️ Chargement des photos artistes…');
+  let found=0;
+  for(const name of artists){
+    let url=await fetchWikiPhoto(name);
+    if(!url)url=await fetchWikiPhotoFR(name);
+    if(url){
+      _bgPhotos.push(url);
+      found++;
+      // Démarre dès la première photo trouvée
+      if(found===1){
+        _bgShow(url);
+        _bgTimer=setInterval(_bgNext,7000);
       }
-    }catch{}
+    }
+  }
+  if(!found){
+    // Fallback: utiliser les pochettes locales
+    songs.forEach(s=>{if(s.artUrl&&!_bgPhotos.includes(s.artUrl))_bgPhotos.push(s.artUrl);});
+    if(_bgPhotos.length){_bgShow(_bgPhotos[0]);_bgTimer=setInterval(_bgNext,7000);}
   }
 }
 
-function startBgSlideshow(){
-  if(!bgPhotos.length)return;
-  clearInterval(bgTimer);
-  showBgPhoto(bgPhotos[bgIdx%bgPhotos.length]);
-  bgTimer=setInterval(()=>{
-    bgIdx=(bgIdx+1)%bgPhotos.length;
-    showBgPhoto(bgPhotos[bgIdx]);
-  },6000);
-}
-
-function showBgPhoto(url){
-  const next=bgActive===0?1:0;
-  const el=document.getElementById(`bg${next}`);
-  if(!el)return;
-  el.style.backgroundImage=`url("${url}")`;
-  // Fade in new
-  setTimeout(()=>{
-    document.getElementById(`bg${bgActive}`)?.classList.remove('active');
-    el.classList.add('active');
-    bgActive=next;
-  },50);
-}
-
-// Update bg when song changes
-function updBgForSong(song){
-  if(!song)return;
-  const url=song.artUrl;
-  if(url&&bgPhotos.length){
-    // Add to front if not already there
-    if(!bgPhotos.includes(url))bgPhotos.unshift(url);
-    showBgPhoto(url);
+// Change le fond quand une nouvelle chanson joue
+function updBgForCurrent(){
+  if(!curSong)return;
+  // Si on a des photos Wikipedia, laisser défiler normalement
+  // Sinon utiliser la pochette de la chanson actuelle
+  if(_bgPhotos.length===0&&curSong.artUrl){
+    _bgShow(curSong.artUrl);
   }
 }
 
